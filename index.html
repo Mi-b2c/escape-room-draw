@@ -165,7 +165,7 @@
       <img id="revealImg" class="reveal-img" style="display:none;" alt="" />
     </div>
 
-    <button class="primary" id="drawBtn" onclick="doDraw()">🎉 Draw My Room</button>
+    <button class="primary" id="drawBtn" onclick="doDraw()">🎉 Show Me My Room</button>
     <div class="counts" id="counts"></div>
     <div class="footer-note" id="footerNote"></div>
     <div class="switch"><a onclick="backToSetup()">⚙︎ Organizer setup</a></div>
@@ -287,8 +287,10 @@ function resetReveal(){
   rev.classList.remove('locked');
   document.getElementById('revealName').textContent = '— — —';
   const img = document.getElementById('revealImg'); img.style.display='none'; img.src='';
-  document.getElementById('drawBtn').disabled = false;
-  document.getElementById('drawBtn').textContent = '🎉 Draw My Room';
+  const btn = document.getElementById('drawBtn');
+  btn.disabled = false;
+  btn.style.display = '';
+  btn.textContent = '🎉 Show Me My Room';
   document.getElementById('footerNote').textContent = '';
 }
 
@@ -313,7 +315,7 @@ function doDraw(){
       clearInterval(spin);
       nameEl.textContent = room;
       rev.classList.add('locked');
-      btn.textContent = 'Drawn ✓';
+      btn.style.display = 'none';
       const roomObj = CONFIG.rooms.find(r=>r.name===room);
       const img = document.getElementById('revealImg');
       if(roomObj && roomObj.img){ img.src = roomObj.img; img.alt = room; img.style.display='block'; }
