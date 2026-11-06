@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Lucky Draw</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --card: #1b2036;
+    --card2: #232a47;
+    --accent: #6c5ce7;
+    --accent2: #00cec9;
+    --text: #eef1ff;
+    --muted: #9aa3c7;
+    --good: #00b894;
+    --warn: #e17055;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #2a2f55 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; text-align: center; }
+  .sub { color: var(--muted); text-align: center; margin: 0 0 22px; font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; font-weight: 600; letter-spacing:.3px; }
+  input, textarea, select {
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid rgba(255,255,255,.08);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    outline: none;
+  }
+  textarea { resize: vertical; min-height: 120px; font-family: inherit; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  .room-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .room-row input.name { flex: 1; }
+  .room-row input.cap { width: 110px; }
+  .room-row button { flex: 0 0 auto; }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--card2);
+    transition: transform .06s ease, filter .15s ease;
+  }
+  button:active { transform: translateY(1px); }
+  button.primary { background: linear-gradient(135deg, var(--accent), #8e7bff); width: 100%; margin-top: 18px; padding: 15px; font-size: 17px; }
+  button.ghost { background: transparent; border: 1px solid rgba(255,255,255,.15); }
+  button.tiny { padding: 8px 12px; font-size: 13px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .pill { display:inline-block; background: var(--card2); border:1px solid rgba(255,255,255,.08); border-radius: 999px; padding: 4px 10px; font-size:12px; color: var(--muted); margin: 2px; }
+  .share-box { display:flex; gap:8px; margin-top: 10px; }
+  .share-box input { font-size: 12px; }
+  .msg { margin-top: 12px; font-size: 13px; }
+  .msg.good { color: var(--good); }
+  .msg.warn { color: var(--warn); }
+  hr { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: 22px 0; }
+
+  /* Draw view */
+  .draw-card { text-align: center; }
+  .reveal {
+    margin: 22px auto 6px;
+    min-height: 150px;
+    border-radius: 16px;
+    background: var(--card2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; gap: 8px;
+    border: 1px dashed rgba(255,255,255,.14);
+    transition: all .3s ease;
+  }
+  .reveal.locked { background: linear-gradient(135deg, var(--good), #0cc6a0); border: none; }
+  .reveal .room-name { font-size: 34px; font-weight: 800; letter-spacing: .5px; }
+  .reveal .room-label { font-size: 13px; opacity: .85; text-transform: uppercase; letter-spacing: 2px; }
+  .spin { font-size: 30px; font-weight: 800; }
+  .footer-note { color: var(--muted); font-size: 12px; margin-top: 18px; text-align:center; }
+  .switch { text-align:center; margin-top: 18px; }
+  .switch a { color: var(--accent2); font-size: 12px; text-decoration: none; cursor:pointer; }
+  .counts { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎲 Team Lucky Draw</h1>
+  <p class="sub" id="subtitle">Pre-set rooms + caps. Each person clicks to reveal their room.</p>
+
+  <!-- ================= SETUP ================= -->
+  <div class="card" id="setup">
+    <label>Event title (shown to participants)</label>
+    <input id="title" placeholder="e.g. Escape Room Teams" value="Escape Room Teams" />
+
+    <label>Rooms &amp; capacity</label>
+    <div id="rooms">
+      <div class="room-row">
+        <input class="name" placeholder="Room name" value="Room 1" />
+        <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
+        <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+      </div>
+      <div class="room-row">
+        <input class="name" placeholder="Room name" value="Room 2" />
+        <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
+        <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+      </div>
+    </div>
+    <button class="ghost tiny" onclick="addRoom()">+ Add room</button>
+
+    <label>Participant names (one per line)</label>
+    <textarea id="names" placeholder="Alex Chen&#10;Jordan Lee&#10;Sam Patel&#10;..."></textarea>
+    <div class="hint">The draw is randomized once (using a fixed seed baked into the link), so everyone who opens the link sees the same, consistent assignment — and room caps are always respected.</div>
+
+    <button class="primary" onclick="generate()">Generate shareable link →</button>
+    <div id="setupMsg" class="msg"></div>
+
+    <div id="shareArea" style="display:none;">
+      <hr />
+      <label>Share this link with your team</label>
+      <div class="share-box">
+        <input id="shareLink" readonly />
+        <button class="primary" style="width:auto;margin-top:0;" onclick="copyLink()">Copy</button>
+      </div>
+      <div class="hint">Host this HTML file anywhere (or I can deploy it for you), then share the link. Each teammate opens it, picks their name, and clicks <b>Draw My Room</b>.</div>
+      <button class="ghost tiny" style="margin-top:12px;" onclick="previewDraw()">Preview draw view ↓</button>
+    </div>
+  </div>
+
+  <!-- ================= DRAW ================= -->
+  <div class="card draw-card" id="draw" style="display:none;">
+    <label style="text-align:left;">Select your name</label>
+    <select id="whoami"></select>
+
+    <div class="reveal" id="reveal">
+      <div class="room-label">Your room</div>
+      <div class="room-name" id="revealName">— — —</div>
+    </div>
+
+    <button class="primary" id="drawBtn" onclick="doDraw()">🎉 Draw My Room</button>
+    <div class="counts" id="counts"></div>
+    <div class="footer-note" id="footerNote"></div>
+    <div class="switch"><a onclick="backToSetup()">⚙︎ Organizer setup</a></div>
+  </div>
+</div>
+
+<script>
+/* ---------- deterministic seeded RNG ---------- */
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^=h>>>16)>>>0;};}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function seededShuffle(arr, seedStr){
+  const seed = hashStr(seedStr)();
+  const rand = mulberry32(seed);
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(rand()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+/* ---------- state ---------- */
+let CONFIG = null; // {title, rooms:[{name,cap}], names:[], seed}
+
+/* ---------- SETUP ---------- */
+function addRoom(name="", cap=""){
+  const row = document.createElement('div');
+  row.className = 'room-row';
+  row.innerHTML = `<input class="name" placeholder="Room name" value="${name}">
+    <input class="cap" type="number" min="1" placeholder="Seats" value="${cap}">
+    <button class="ghost tiny" onclick="removeRoom(this)">✕</button>`;
+  document.getElementById('rooms').appendChild(row);
+}
+function removeRoom(btn){ const rows=document.querySelectorAll('#rooms .room-row'); if(rows.length>1) btn.closest('.room-row').remove(); }
+
+function readSetup(){
+  const title = document.getElementById('title').value.trim() || "Lucky Draw";
+  const rooms = [];
+  document.querySelectorAll('#rooms .room-row').forEach(r=>{
+    const name = r.querySelector('.name').value.trim();
+    const cap = parseInt(r.querySelector('.cap').value, 10);
+    if(name && cap>0) rooms.push({name, cap});
+  });
+  const names = document.getElementById('names').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  // dedupe
+  const seen=new Set(); const uniq=[]; names.forEach(n=>{const k=n.toLowerCase(); if(!seen.has(k)){seen.add(k);uniq.push(n);}});
+  return {title, rooms, names: uniq};
+}
+
+function generate(){
+  const msg = document.getElementById('setupMsg');
+  const {title, rooms, names} = readSetup();
+  if(rooms.length < 1){ msg.className='msg warn'; msg.textContent='Add at least one room.'; return; }
+  if(names.length < 1){ msg.className='msg warn'; msg.textContent='Add at least one participant name.'; return; }
+  const totalCap = rooms.reduce((s,r)=>s+r.cap,0);
+  if(totalCap < names.length){ msg.className='msg warn'; msg.textContent=`Total seats (${totalCap}) < participants (${names.length}). Increase capacity.`; return; }
+
+  const seed = 'seed-' + Math.random().toString(36).slice(2,10);
+  CONFIG = {title, rooms, names, seed};
+
+  const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(CONFIG)))));
+  const url = location.origin + location.pathname + '#d=' + encoded;
+  document.getElementById('shareLink').value = url;
+  document.getElementById('shareArea').style.display = 'block';
+  msg.className='msg good';
+  msg.textContent = `Link ready! ${names.length} people across ${rooms.length} rooms (${totalCap} seats).`;
+}
+
+function copyLink(){
+  const inp = document.getElementById('shareLink');
+  inp.select(); inp.setSelectionRange(0,99999);
+  navigator.clipboard.writeText(inp.value).then(()=>{
+    const msg=document.getElementById('setupMsg'); msg.className='msg good'; msg.textContent='Link copied to clipboard ✓';
+  });
+}
+
+function previewDraw(){ window.location.hash = document.getElementById('shareLink').value.split('#')[1]; loadFromHash(); }
+function backToSetup(){ history.replaceState(null,'',location.pathname); showSetup(); }
+
+/* ---------- assignment (deterministic) ---------- */
+function computeAssignment(cfg){
+  const shuffled = seededShuffle(cfg.names.slice().sort(), cfg.seed);
+  const assign = {}; // name -> roomName
+  const roomCount = {}; cfg.rooms.forEach(r=>roomCount[r.name]=0);
+  let idx=0;
+  // fill room by room in order after shuffle -> random people, capped
+  for(const r of cfg.rooms){
+    for(let k=0;k<r.cap && idx<shuffled.length;k++){ assign[shuffled[idx]] = r.name; roomCount[r.name]++; idx++; }
+  }
+  return {assign, roomCount};
+}
+
+/* ---------- DRAW view ---------- */
+function loadFromHash(){
+  const h = location.hash.replace(/^#d=/,'');
+  if(!h) { showSetup(); return; }
+  try {
+    CONFIG = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h)))));
+  } catch(e){ showSetup(); return; }
+  showDraw();
+}
+
+function showSetup(){ document.getElementById('setup').style.display='block'; document.getElementById('draw').style.display='none'; }
+
+function showDraw(){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('draw').style.display='block';
+  document.getElementById('subtitle').textContent = CONFIG.title;
+  const sel = document.getElementById('whoami');
+  sel.innerHTML = '<option value="">— choose your name —</option>' +
+    CONFIG.names.slice().sort().map(n=>`<option>${n.replace(/</g,'&lt;')}</option>`).join('');
+  // show room cap summary
+  const counts = document.getElementById('counts');
+  counts.innerHTML = CONFIG.rooms.map(r=>`<span class="pill">${r.name}: ${r.cap} seats</span>`).join('');
+  resetReveal();
+  sel.onchange = resetReveal;
+}
+
+function resetReveal(){
+  const rev = document.getElementById('reveal');
+  rev.classList.remove('locked');
+  document.getElementById('revealName').textContent = '— — —';
+  document.getElementById('drawBtn').disabled = false;
+  document.getElementById('drawBtn').textContent = '🎉 Draw My Room';
+  document.getElementById('footerNote').textContent = '';
+}
+
+function doDraw(){
+  const name = document.getElementById('whoami').value;
+  if(!name){ document.getElementById('footerNote').textContent='Please select your name first.'; return; }
+  const {assign} = computeAssignment(CONFIG);
+  const room = assign[name];
+  if(!room){ document.getElementById('footerNote').textContent='Hmm, your name was not found in the roster. Check with the organizer.'; return; }
+
+  const btn = document.getElementById('drawBtn');
+  const nameEl = document.getElementById('revealName');
+  const rev = document.getElementById('reveal');
+  btn.disabled = true;
+  // quick suspense animation cycling room names
+  const pool = CONFIG.rooms.map(r=>r.name);
+  let ticks = 0;
+  const spin = setInterval(()=>{
+    nameEl.textContent = pool[Math.floor(Math.random()*pool.length)];
+    ticks++;
+    if(ticks>12){
+      clearInterval(spin);
+      nameEl.textContent = room;
+      rev.classList.add('locked');
+      btn.textContent = 'Drawn ✓';
+      document.getElementById('footerNote').textContent = `${name}, you're in ${room}. (Same result every time — it's locked in!)`;
+    }
+  }, 70);
+}
+
+/* ---------- init ---------- */
+window.addEventListener('hashchange', loadFromHash);
+if(location.hash.startsWith('#d=')) loadFromHash(); else showSetup();
+</script>
+</body>
+</html>
