@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Team Lucky Draw</title>
+<title>Escape Room Draw</title>
 <style>
   :root {
     --bg: #0f1220;
@@ -106,7 +106,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🎲 Team Lucky Draw</h1>
+  <h1>🎲 Escape Room Draw</h1>
   <p class="sub" id="subtitle">Pre-set rooms + caps. Each person clicks to reveal their room.</p>
 
   <!-- ================= SETUP ================= -->
@@ -278,9 +278,6 @@ function showDraw(){
   const sel = document.getElementById('whoami');
   sel.innerHTML = '<option value="">— choose your name —</option>' +
     CONFIG.names.slice().sort().map(n=>`<option>${n.replace(/</g,'&lt;')}</option>`).join('');
-  // show room cap summary
-  const counts = document.getElementById('counts');
-  counts.innerHTML = CONFIG.rooms.map(r=>`<span class="pill">${r.name}: ${r.cap} seats</span>`).join('');
   resetReveal();
   sel.onchange = resetReveal;
 }
@@ -320,7 +317,7 @@ function doDraw(){
       const roomObj = CONFIG.rooms.find(r=>r.name===room);
       const img = document.getElementById('revealImg');
       if(roomObj && roomObj.img){ img.src = roomObj.img; img.alt = room; img.style.display='block'; }
-      document.getElementById('footerNote').textContent = `${name}, you're in ${room}. (Same result every time — it's locked in!)`;
+      document.getElementById('footerNote').textContent = `${name}, you're in ${room}.`;
     }
   }, 70);
 }
