@@ -51,10 +51,12 @@
   }
   textarea { resize: vertical; min-height: 120px; font-family: inherit; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
-  .room-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .room-block { margin-bottom: 14px; padding: 10px; background: rgba(255,255,255,.03); border-radius: 12px; }
+  .room-row { display: flex; gap: 10px; }
   .room-row input.name { flex: 1; }
   .room-row input.cap { width: 110px; }
   .room-row button { flex: 0 0 auto; }
+  .room-block input.img { margin-top: 8px; font-size: 13px; }
   button {
     cursor: pointer;
     border: none;
@@ -94,6 +96,7 @@
   .reveal.locked { background: linear-gradient(135deg, var(--good), #0cc6a0); border: none; }
   .reveal .room-name { font-size: 34px; font-weight: 800; letter-spacing: .5px; }
   .reveal .room-label { font-size: 13px; opacity: .85; text-transform: uppercase; letter-spacing: 2px; }
+  .reveal-img { max-width: 100%; max-height: 220px; border-radius: 12px; margin-top: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
   .spin { font-size: 30px; font-weight: 800; }
   .footer-note { color: var(--muted); font-size: 12px; margin-top: 18px; text-align:center; }
   .switch { text-align:center; margin-top: 18px; }
@@ -113,15 +116,21 @@
 
     <label>Rooms &amp; capacity</label>
     <div id="rooms">
-      <div class="room-row">
-        <input class="name" placeholder="Room name" value="Room 1" />
-        <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
-        <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+      <div class="room-block">
+        <div class="room-row">
+          <input class="name" placeholder="Room name" value="Room 1" />
+          <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
+          <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+        </div>
+        <input class="img" placeholder="Image URL (optional) — shown on reveal" />
       </div>
-      <div class="room-row">
-        <input class="name" placeholder="Room name" value="Room 2" />
-        <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
-        <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+      <div class="room-block">
+        <div class="room-row">
+          <input class="name" placeholder="Room name" value="Room 2" />
+          <input class="cap" type="number" min="1" placeholder="Seats" value="6" />
+          <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+        </div>
+        <input class="img" placeholder="Image URL (optional) — shown on reveal" />
       </div>
     </div>
     <button class="ghost tiny" onclick="addRoom()">+ Add room</button>
@@ -153,6 +162,7 @@
     <div class="reveal" id="reveal">
       <div class="room-label">Your room</div>
       <div class="room-name" id="revealName">— — —</div>
+      <img id="revealImg" class="reveal-img" style="display:none;" alt="" />
     </div>
 
     <button class="primary" id="drawBtn" onclick="doDraw()">🎉 Draw My Room</button>
@@ -179,22 +189,26 @@ let CONFIG = null; // {title, rooms:[{name,cap}], names:[], seed}
 
 /* ---------- SETUP ---------- */
 function addRoom(name="", cap=""){
-  const row = document.createElement('div');
-  row.className = 'room-row';
-  row.innerHTML = `<input class="name" placeholder="Room name" value="${name}">
-    <input class="cap" type="number" min="1" placeholder="Seats" value="${cap}">
-    <button class="ghost tiny" onclick="removeRoom(this)">✕</button>`;
-  document.getElementById('rooms').appendChild(row);
+  const block = document.createElement('div');
+  block.className = 'room-block';
+  block.innerHTML = `<div class="room-row">
+      <input class="name" placeholder="Room name" value="${name}">
+      <input class="cap" type="number" min="1" placeholder="Seats" value="${cap}">
+      <button class="ghost tiny" onclick="removeRoom(this)">✕</button>
+    </div>
+    <input class="img" placeholder="Image URL (optional) — shown on reveal">`;
+  document.getElementById('rooms').appendChild(block);
 }
-function removeRoom(btn){ const rows=document.querySelectorAll('#rooms .room-row'); if(rows.length>1) btn.closest('.room-row').remove(); }
+function removeRoom(btn){ const blocks=document.querySelectorAll('#rooms .room-block'); if(blocks.length>1) btn.closest('.room-block').remove(); }
 
 function readSetup(){
   const title = document.getElementById('title').value.trim() || "Lucky Draw";
   const rooms = [];
-  document.querySelectorAll('#rooms .room-row').forEach(r=>{
+  document.querySelectorAll('#rooms .room-block').forEach(r=>{
     const name = r.querySelector('.name').value.trim();
     const cap = parseInt(r.querySelector('.cap').value, 10);
-    if(name && cap>0) rooms.push({name, cap});
+    const img = r.querySelector('.img').value.trim();
+    if(name && cap>0) rooms.push({name, cap, img});
   });
   const names = document.getElementById('names').value.split('\n').map(s=>s.trim()).filter(Boolean);
   // dedupe
@@ -275,6 +289,7 @@ function resetReveal(){
   const rev = document.getElementById('reveal');
   rev.classList.remove('locked');
   document.getElementById('revealName').textContent = '— — —';
+  const img = document.getElementById('revealImg'); img.style.display='none'; img.src='';
   document.getElementById('drawBtn').disabled = false;
   document.getElementById('drawBtn').textContent = '🎉 Draw My Room';
   document.getElementById('footerNote').textContent = '';
@@ -302,6 +317,9 @@ function doDraw(){
       nameEl.textContent = room;
       rev.classList.add('locked');
       btn.textContent = 'Drawn ✓';
+      const roomObj = CONFIG.rooms.find(r=>r.name===room);
+      const img = document.getElementById('revealImg');
+      if(roomObj && roomObj.img){ img.src = roomObj.img; img.alt = room; img.style.display='block'; }
       document.getElementById('footerNote').textContent = `${name}, you're in ${room}. (Same result every time — it's locked in!)`;
     }
   }, 70);
